@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 import seaborn as sns
 from sklearn.metrics import classification_report, confusion_matrix
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -14,7 +15,8 @@ from sklearn.model_selection import train_test_split
 ni_6s_data = np.load('NI_6s.npy')  # Replace with your actual path
 ow_6s_data = np.load('OW_6s.npy')  # Replace with your actual path
 
-# Assuming NI_6s.npy represents sea ice (label 0) and OW_6s.npy represents icebergs (label 1)
+# Label assumption: NI_6s.npy -> class 0, OW_6s.npy -> class 1.
+# Check the dataset documentation for what NI and OW stand for before naming the classes.
 sea_ice_labels = np.zeros(ni_6s_data.shape[0])  # Label 0 for sea ice
 iceberg_labels = np.ones(ow_6s_data.shape[0])   # Label 1 for icebergs
 
@@ -32,7 +34,7 @@ X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_st
 datagen = ImageDataGenerator()
 
 train_generator = datagen.flow(X_train, y_train, batch_size=32)
-validation_generator = datagen.flow(X_val, y_val, batch_size=32)
+validation_generator = datagen.flow(X_val, y_val, batch_size=32, shuffle=False)  # keep order so predictions match y_val
 
 # Model architecture
 model = Sequential([
@@ -76,7 +78,7 @@ test_loss, test_acc = model.evaluate(validation_generator)
 print(f'Test Accuracy: {test_acc}')
 
 # Predictions
-Y_pred = model.predict(validation_generator, validation_generator.samples // validation_generator.batch_size + 1)
+Y_pred = model.predict(X_val)
 y_pred = np.round(Y_pred).astype(int).flatten()
 
 # Confusion matrix and classification report
@@ -95,7 +97,7 @@ plt.plot(history.history['val_accuracy'])
 plt.title('Model Accuracy')
 plt.ylabel('Accuracy')
 plt.xlabel('Epoch')
-plt.legend(['Train', Validation'], loc='upper left')
+plt.legend(['Train', 'Validation'], loc='upper left')
 plt.grid(True)
 plt.show()
 
@@ -117,18 +119,4 @@ sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False,
 plt.title('Confusion Matrix')
 plt.xlabel('Predicted Label')
 plt.ylabel('True Label')
-plt.show()
-
-# Simulate a classified image
-classified_image = np.random.choice([0, 1], size=(128, 128), p=[0.7, 0.3])
-
-# Visualize the classified image
-plt.figure(figsize=(6, 6))
-cmap = ListedColormap(['#87CEEB', '#FFFFFF'])  # Light blue for sea ice, white for iceberg
-plt.imshow(classified_image, cmap=cmap, interpolation='nearest')
-plt.title('Simulated Classified Image: Sea Ice (0) vs Iceberg (1)', fontsize=14)
-cbar = plt.colorbar(ticks=[0, 1], fraction=0.046, pad=0.04)
-cbar.ax.set_yticklabels(['Sea Ice (0)', 'Iceberg (1)'])
-plt.clim(-0.5, 1.5)
-plt.grid(False)
 plt.show()
